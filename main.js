@@ -9,18 +9,81 @@ function addData(event) {
     const yInput = parseFloat(document.getElementById('y-input').value);
     if (!isNaN(xInput) && !isNaN(yInput)) {
         const tableBody = document.getElementById('data-table').getElementsByTagName('tbody')[0];
-        const newRow = tableBody.insertRow();
-        const cell1 = newRow.insertCell(0);
-        const cell2 = newRow.insertCell(1);
+        let sumRow = document.getElementById('sum-row');
+        if (sumRow) {
+            tableBody.removeChild(sumRow);
+        }
+
+        const newRow = tableBody.insertRow(-1);
+        const numCell = newRow.insertCell(0);
+        numCell.textContent = tableBody.rows.length;
+
+        const cell1 = newRow.insertCell(1);
+        const cell2 = newRow.insertCell(2);
+        const cell3 = newRow.insertCell(3);
+        const cell4 = newRow.insertCell(4);
+        const cell5 = newRow.insertCell(5);
+
         cell1.textContent = xInput.toFixed(2);
-        cell2.textContent = yInput.toFixed(2);
-        data.push({ x: xInput, y: yInput });
+        cell2.textContent = (xInput * xInput).toFixed(2); // x^2
+        cell3.textContent = yInput.toFixed(2); // y
+        cell4.textContent = (yInput * yInput).toFixed(2); // y^2
+        cell5.textContent = (xInput * yInput).toFixed(2); // x*y
+
+        data.push({ x: xInput, x2: xInput * xInput, y: yInput, y2: yInput * yInput, xy: xInput * yInput });
         draw();
         document.getElementById('x-input').value = '';
         document.getElementById('y-input').value = '';
         calculateStatistics();
+
+        const sums = data.reduce((acc, point) => {
+            acc.x += point.x;
+            acc.x2 += point.x2;
+            acc.y += point.y;
+            acc.y2 += point.y2;
+            acc.xy += point.xy;
+            return acc;
+        }, { x: 0, x2: 0, y: 0, y2: 0, xy: 0 });
+
+        sumRow = tableBody.insertRow(-1);
+        sumRow.id = 'sum-row';
+        const sigmaCell = sumRow.insertCell(0);
+        sigmaCell.textContent = 'Σ';
+        sumRow.insertCell(1).textContent = sums.x.toFixed(2);
+        sumRow.insertCell(2).textContent = sums.x2.toFixed(2);
+        sumRow.insertCell(3).textContent = sums.y.toFixed(2);
+        sumRow.insertCell(4).textContent = sums.y2.toFixed(2);
+        sumRow.insertCell(5).textContent = sums.xy.toFixed(2);
     }
 }
+
+function sigma(){
+    const sums = data.reduce((acc, point) => {
+        acc.x += point.x;
+        acc.x2 += point.x2;
+        acc.y += point.y;
+        acc.y2 += point.y2;
+        acc.xy += point.xy;
+        return acc;
+    }, { x: 0, x2: 0, y: 0, y2: 0, xy: 0 });
+
+    let sumRow = document.getElementById('sum-row');
+    if (!sumRow) {
+        sumRow = tableBody.insertRow();
+        sumRow.id = 'sum-row';
+        sumRow.insertCell(0);
+        sumRow.insertCell(1);
+        sumRow.insertCell(2);
+        sumRow.insertCell(3);
+        sumRow.insertCell(4);
+    }
+    sumRow.cells[0].textContent = sums.x.toFixed(2);
+    sumRow.cells[1].textContent = sums.x2.toFixed(2);
+    sumRow.cells[2].textContent = sums.y.toFixed(2);
+    sumRow.cells[3].textContent = sums.y2.toFixed(2);
+    sumRow.cells[4].textContent = sums.xy.toFixed(2);
+}
+
 
 function resetData() {
     // Mengosongkan isi tabel data
@@ -112,11 +175,16 @@ function linearRegression() {
 
 function calculateStatistics() {
     const { slope, intercept } = linearRegression();
+    const residuals = data.map(p => p.y - (slope * p.x + intercept));
+    const ssRes = residuals.reduce((acc, r) => acc + r * r, 0);
+    const ssTot = data.reduce((acc, p) => acc + Math.pow(p.y - (data.reduce((sum, p) => sum + p.y, 0) / data.length), 2), 0);
+    const rSquared = 1 - ssRes / ssTot;
 
     resultsDiv.innerHTML = `
         <p>Y = ${intercept.toFixed(2)} + ${slope.toFixed(2)}x</p>
-        <p>Koefisien Regresi (Slope): ${slope.toFixed(2)}</p>
-        <p>Konstanta (Intercept): ${intercept.toFixed(2)}</p>
+        <p>a = Konstanta (Intercept): ${intercept.toFixed(2)}</p>
+        <p>b = Koefisien Regresi (Slope): ${slope.toFixed(2)}</p>
+        <p>R<sup>2</sup> = Nilai R-squared: ${rSquared.toFixed(2)}</p>
     `;
 }
 
